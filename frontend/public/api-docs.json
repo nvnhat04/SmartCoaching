@@ -1,0 +1,734 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Smart Coaching API",
+    "description": "AI-powered fitness coaching application with pose detection and personalized workout recommendations",
+    "version": "1.0.0",
+    "contact": {
+      "name": "Smart Coaching Team",
+      "email": "support@smartcoaching.com"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Development server (Next.js)"
+    },
+    {
+      "url": "http://localhost:8000",
+      "description": "AI Service (FastAPI)"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Authentication",
+      "description": "User authentication and session management"
+    },
+    {
+      "name": "Users",
+      "description": "User profile and settings management"
+    },
+    {
+      "name": "Exercises",
+      "description": "Exercise catalog and details"
+    },
+    {
+      "name": "Workouts",
+      "description": "Workout sessions and tracking"
+    },
+    {
+      "name": "AI Service",
+      "description": "Pose detection and AI recommendations"
+    }
+  ],
+  "paths": {
+    "/api/auth/register": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Register a new user",
+        "description": "Create a new user account with email and password",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "email", "password"],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "example": "John Doe"
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "john@example.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "minLength": 6,
+                    "example": "password123"
+                  },
+                  "age": {
+                    "type": "number",
+                    "example": 25
+                  },
+                  "gender": {
+                    "type": "string",
+                    "enum": ["male", "female", "other"],
+                    "example": "male"
+                  },
+                  "weight": {
+                    "type": "number",
+                    "example": 70
+                  },
+                  "height": {
+                    "type": "number",
+                    "example": 175
+                  },
+                  "goals": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    },
+                    "example": ["Build muscle", "Lose weight"]
+                  },
+                  "fitnessLevel": {
+                    "type": "string",
+                    "enum": ["beginner", "intermediate", "advanced"],
+                    "example": "beginner"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "example": "User registered successfully"
+                    },
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - validation error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "User already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/[...nextauth]": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "NextAuth endpoints",
+        "description": "Handles NextAuth.js authentication flows (signin, callback, session, etc.)",
+        "responses": {
+          "200": {
+            "description": "Authentication response"
+          }
+        }
+      },
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Sign in with credentials",
+        "description": "Authenticate user with email and password",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "example": "admin@smartcoaching.com"
+                  },
+                  "password": {
+                    "type": "string",
+                    "format": "password",
+                    "example": "admin123"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": {
+                      "$ref": "#/components/schemas/User"
+                    },
+                    "session": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/analyze-pose": {
+      "post": {
+        "tags": ["AI Service"],
+        "summary": "Analyze exercise pose from image",
+        "description": "Upload an image to detect body pose and analyze exercise form using MediaPipe",
+        "servers": [
+          {
+            "url": "http://localhost:8000",
+            "description": "AI Service"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file", "exercise_type"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Image file (JPEG, PNG)"
+                  },
+                  "exercise_type": {
+                    "type": "string",
+                    "enum": ["squat", "pushup", "plank", "general"],
+                    "example": "squat",
+                    "description": "Type of exercise to analyze"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Pose analysis successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PoseAnalysis"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid file or no pose detected"
+          },
+          "500": {
+            "description": "Server error"
+          }
+        }
+      }
+    },
+    "/analyze-video": {
+      "post": {
+        "tags": ["AI Service"],
+        "summary": "Analyze exercise video",
+        "description": "Upload a video to track exercise form throughout the workout and count repetitions",
+        "servers": [
+          {
+            "url": "http://localhost:8000",
+            "description": "AI Service"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "required": ["file", "exercise_type"],
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary",
+                    "description": "Video file (MP4, AVI, MOV)"
+                  },
+                  "exercise_type": {
+                    "type": "string",
+                    "enum": ["squat", "pushup", "plank"],
+                    "example": "squat"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Video analysis successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VideoAnalysis"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid video file"
+          }
+        }
+      }
+    },
+    "/get-recommendations": {
+      "post": {
+        "tags": ["AI Service"],
+        "summary": "Get AI workout recommendations",
+        "description": "Get personalized workout recommendations based on user profile and goals",
+        "servers": [
+          {
+            "url": "http://localhost:8000",
+            "description": "AI Service"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["user_profile"],
+                "properties": {
+                  "user_profile": {
+                    "type": "object",
+                    "properties": {
+                      "age": {
+                        "type": "number",
+                        "example": 25
+                      },
+                      "gender": {
+                        "type": "string",
+                        "example": "male"
+                      },
+                      "weight": {
+                        "type": "number",
+                        "example": 70
+                      },
+                      "height": {
+                        "type": "number",
+                        "example": 175
+                      },
+                      "fitness_level": {
+                        "type": "string",
+                        "enum": ["beginner", "intermediate", "advanced"],
+                        "example": "beginner"
+                      },
+                      "goals": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "example": ["Build muscle", "Lose weight"]
+                      }
+                    }
+                  },
+                  "workout_history": {
+                    "type": "array",
+                    "items": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Recommendations generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Recommendations"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "tags": ["AI Service"],
+        "summary": "Health check",
+        "description": "Check if AI service is running",
+        "servers": [
+          {
+            "url": "http://localhost:8000",
+            "description": "AI Service"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Service is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "healthy"
+                    },
+                    "service": {
+                      "type": "string",
+                      "example": "Smart Coaching AI Service"
+                    },
+                    "version": {
+                      "type": "string",
+                      "example": "1.0.0"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "example": "507f1f77bcf86cd799439011"
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "example": "user@example.com"
+          },
+          "name": {
+            "type": "string",
+            "example": "John Doe"
+          },
+          "age": {
+            "type": "number",
+            "example": 25
+          },
+          "gender": {
+            "type": "string",
+            "enum": ["male", "female", "other"],
+            "example": "male"
+          },
+          "weight": {
+            "type": "number",
+            "example": 70
+          },
+          "height": {
+            "type": "number",
+            "example": 175
+          },
+          "bmi": {
+            "type": "number",
+            "example": 22.9
+          },
+          "goals": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["Build muscle", "Improve endurance"]
+          },
+          "fitnessLevel": {
+            "type": "string",
+            "enum": ["beginner", "intermediate", "advanced"],
+            "example": "beginner"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Exercise": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string",
+            "example": "Squat"
+          },
+          "category": {
+            "type": "string",
+            "example": "Strength"
+          },
+          "difficulty": {
+            "type": "string",
+            "enum": ["beginner", "intermediate", "advanced"],
+            "example": "beginner"
+          },
+          "muscleGroups": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["Legs", "Glutes", "Core"]
+          },
+          "equipment": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "example": ["None"]
+          },
+          "instructions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "videoUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "imageUrl": {
+            "type": "string",
+            "format": "uri"
+          },
+          "caloriesPerMinute": {
+            "type": "number",
+            "example": 8
+          },
+          "duration": {
+            "type": "number",
+            "example": 30
+          }
+        }
+      },
+      "PoseAnalysis": {
+        "type": "object",
+        "properties": {
+          "pose_detected": {
+            "type": "boolean",
+            "example": true
+          },
+          "exercise_type": {
+            "type": "string",
+            "example": "squat"
+          },
+          "landmarks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "x": {
+                  "type": "number"
+                },
+                "y": {
+                  "type": "number"
+                },
+                "z": {
+                  "type": "number"
+                },
+                "visibility": {
+                  "type": "number"
+                }
+              }
+            }
+          },
+          "analysis": {
+            "type": "object",
+            "properties": {
+              "form_score": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 10,
+                "example": 8.5
+              },
+              "feedback": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                },
+                "example": ["Good depth", "Keep your back straight"]
+              },
+              "angles": {
+                "type": "object",
+                "example": {
+                  "knee_angle": 95,
+                  "hip_angle": 85
+                }
+              }
+            }
+          }
+        }
+      },
+      "VideoAnalysis": {
+        "type": "object",
+        "properties": {
+          "exercise_type": {
+            "type": "string",
+            "example": "squat"
+          },
+          "total_frames": {
+            "type": "number",
+            "example": 300
+          },
+          "frames_analyzed": {
+            "type": "number",
+            "example": 295
+          },
+          "repetitions": {
+            "type": "number",
+            "example": 12
+          },
+          "average_score": {
+            "type": "number",
+            "example": 8.2
+          },
+          "detailed_feedback": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "rep_details": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "rep_number": {
+                  "type": "number"
+                },
+                "score": {
+                  "type": "number"
+                },
+                "duration": {
+                  "type": "number"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Recommendations": {
+        "type": "object",
+        "properties": {
+          "recommended_exercises": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "exercise": {
+                  "type": "string"
+                },
+                "sets": {
+                  "type": "number"
+                },
+                "reps": {
+                  "type": "number"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "workout_plan": {
+            "type": "object",
+            "properties": {
+              "duration": {
+                "type": "number"
+              },
+              "difficulty": {
+                "type": "string"
+              },
+              "focus_areas": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "tips": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Error message"
+          },
+          "message": {
+            "type": "string"
+          },
+          "statusCode": {
+            "type": "number",
+            "example": 400
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "SessionAuth": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "next-auth.session-token",
+        "description": "NextAuth session cookie"
+      }
+    }
+  }
+}
