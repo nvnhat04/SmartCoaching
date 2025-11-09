@@ -49,3 +49,4 @@ ai-service/venv/
 .idea/
 *.swp
 *.swo
+.env
