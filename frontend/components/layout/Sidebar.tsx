@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Dumbbell, BookOpen, User, MessageSquare } from "lucide-react";
+import {
+  LayoutDashboard,
+  Dumbbell,
+  BookOpen,
+  User,
+  MessageSquare,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navigation = [
@@ -15,11 +21,6 @@ const navigation = [
     name: "Danh mục",
     href: "/category",
     icon: BookOpen,
-  },
-  {
-    name: "Tập luyện",
-    href: "/practice",
-    icon: Dumbbell,
   },
   {
     name: "Tư vấn AI",
@@ -46,7 +47,7 @@ export function Sidebar() {
 
       <nav className="flex-1 px-4 space-y-1">
         {navigation.map((item) => {
-          const isActive = pathname === item.href;
+          const isActive = pathname.includes(item.href);
           const Icon = item.icon;
 
           return (
