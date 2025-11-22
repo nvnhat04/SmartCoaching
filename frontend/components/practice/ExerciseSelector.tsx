@@ -5,7 +5,7 @@ interface ExerciseSelectorProps {
 }
 
 export function ExerciseSelector({ onSelect }: ExerciseSelectorProps) {
-  const exercises = ["Squat", "Push-up", "Plank", "Yoga"];
+  const exercises = ["Squat", "Push-up", "Plank", "30 động tác"];
 
   return (
     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
