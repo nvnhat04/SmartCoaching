@@ -145,7 +145,7 @@ export default function ExercisePracticePage({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center flex justify-between">
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Link
             href={`/category/${params.categoryId}`}
@@ -155,16 +155,6 @@ export default function ExercisePracticePage({
           </Link>
           <h1 className="text-3xl font-bold text-gray-900">{exercise.name}</h1>
         </div>
-        <button
-          onClick={() => setIsCameraActive(!isCameraActive)}
-          className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-            isCameraActive
-              ? "bg-red-600 hover:bg-red-700 text-white"
-              : "bg-green-600 hover:bg-green-700 text-white"
-          }`}
-        >
-          {/* {isCameraActive ? "🛑 Dừng camera" : "📹 Bật camera"} */}
-        </button>
       </div>
 
       {/* Exercise Info */}
@@ -194,7 +184,7 @@ export default function ExercisePracticePage({
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             🎥 Video hướng dẫn
           </h2>
-          <div className="relative pt-[56.25%] bg-gray-100 rounded-lg overflow-hidden">
+          <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
             <iframe
               id="demo-video-player"
               src={`${exercise.videoUrl}&autoplay=1&controls=1&modestbranding=1&rel=0&enablejsapi=1&loop=1`}
@@ -205,13 +195,34 @@ export default function ExercisePracticePage({
           </div>
         </div>
 
-        <WorkoutSession
-          exercise={""}
-          onEnd={() => {
-            setSessionStarted(false);
-            setSelectedExercise(null);
-          }}
-        />
+        {/* Camera & Controls - Bên phải */}
+        <div className="bg-white rounded-lg shadow-md p-6">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-900">
+              📹 Tập luyện
+            </h2>
+            <button
+              onClick={() => setSessionStarted(!sessionStarted)}
+              className={`px-6 py-3 rounded-lg font-semibold transition-colors shadow-lg ${
+                sessionStarted
+                  ? "bg-red-600 hover:bg-red-700 text-white"
+                  : "bg-blue-600 hover:bg-blue-700 text-white"
+              }`}
+            >
+              {sessionStarted ? "⏹ Dừng lại" : "▶ Bắt đầu"}
+            </button>
+          </div>
+          
+          <WorkoutSession
+            exercise={""}
+            active={sessionStarted}
+            checkpoints={exercise.checkpoints}
+            onEnd={() => {
+              setSessionStarted(false);
+              setSelectedExercise(null);
+            }}
+          />
+        </div>
       </div>
 
       {/* Tips */}

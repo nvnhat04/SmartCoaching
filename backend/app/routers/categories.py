@@ -1,12 +1,16 @@
 from fastapi import APIRouter, HTTPException
 from app.database import get_categories_collection, get_exercises_collection
-from typing import List, Optional
+from typing import List, Optional, Dict
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/api", tags=["Categories & Exercises"])
 
 
 # Pydantic models
+class Checkpoint(BaseModel):
+    name: str
+    angles: dict  # e.g., {"left_elbow": 6.35, "right_elbow": 5.03, ...}
+
 class Exercise(BaseModel):
     id: int
     category_id: int
@@ -16,6 +20,7 @@ class Exercise(BaseModel):
     difficulty: str
     thumbnail: str
     videoUrl: str
+    checkpoints: Optional[List[Checkpoint]] = []
 
 
 class Category(BaseModel):

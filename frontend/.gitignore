@@ -50,3 +50,5 @@ ai-service/venv/
 *.swp
 *.swo
 .env
+/public/img
+/public/video

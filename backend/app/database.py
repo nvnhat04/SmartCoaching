@@ -71,3 +71,7 @@ def get_categories_collection():
 def get_exercises_collection():
     """Get exercises collection."""
     return db.exercises if db is not None else None
+
+def get_checkpoints_collection():
+    """Get exercise checkpoints collection."""
+    return db.exercise_checkpoints if db is not None else None

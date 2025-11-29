@@ -10,6 +10,11 @@ type Category = {
   description: string;
 };
 
+type Checkpoint = {
+  name: string;
+  angles: Record<string, number>;
+};
+
 type Exercise = {
   id: number;
   category_id: number;
@@ -19,6 +24,7 @@ type Exercise = {
   difficulty: string;
   thumbnail: string;
   videoUrl: string;
+  checkpoints?: Checkpoint[];
 };
 
 // Fetch all categories

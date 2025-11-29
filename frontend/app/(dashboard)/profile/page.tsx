@@ -11,7 +11,7 @@ export default async function ProfilePage() {
     <div className="space-y-6 max-w-4xl">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">
-          Hồ sơ cá nhân 👤
+          Hồ sơ cá nhân 
         </h1>
         <p className="text-gray-600 mt-1">
           Quản lý thông tin và mục tiêu tập luyện của bạn

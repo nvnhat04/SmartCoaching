@@ -1,0 +1,82 @@
+{
+    "nhip_1": {
+        "left_elbow": 175,
+        "right_elbow": 175,
+        "left_shoulder": 155,
+        "right_shoulder": 155,
+        "left_hip": 95,
+        "right_hip": 175,
+        "left_knee": 85,
+        "right_knee": 178
+    },
+    "nhip_2": {
+        "left_elbow": 178,
+        "right_elbow": 178,
+        "left_shoulder": 15,
+        "right_shoulder": 15,
+        "left_hip": 178,
+        "right_hip": 178,
+        "left_knee": 178,
+        "right_knee": 178
+    },
+    "nhip_3": {
+        "left_elbow": 175,
+        "right_elbow": 175,
+        "left_shoulder": 155,
+        "right_shoulder": 155,
+        "left_hip": 175,
+        "right_hip": 95,
+        "left_knee": 178,
+        "right_knee": 85
+    },
+    "nhip_4": {
+        "left_elbow": 178,
+        "right_elbow": 178,
+        "left_shoulder": 15,
+        "right_shoulder": 15,
+        "left_hip": 178,
+        "right_hip": 178,
+        "left_knee": 178,
+        "right_knee": 178
+    },
+    "nhip_5": {
+        "left_elbow": 25,
+        "right_elbow": 25,
+        "left_shoulder": 85,
+        "right_shoulder": 85,
+        "left_hip": 178,
+        "right_hip": 178,
+        "left_knee": 178,
+        "right_knee": 178
+    },
+    "nhip_6": {
+        "left_elbow": 175,
+        "right_elbow": 175,
+        "left_shoulder": 95,
+        "right_shoulder": 95,
+        "left_hip": 178,
+        "right_hip": 178,
+        "left_knee": 178,
+        "right_knee": 178
+    },
+    "nhip_7": {
+        "left_elbow": 25,
+        "right_elbow": 25,
+        "left_shoulder": 85,
+        "right_shoulder": 85,
+        "left_hip": 178,
+        "right_hip": 178,
+        "left_knee": 178,
+        "right_knee": 178
+    },
+    "nhip_8": {
+        "left_elbow": 178,
+        "right_elbow": 178,
+        "left_shoulder": 15,
+        "right_shoulder": 15,
+        "left_hip": 178,
+        "right_hip": 178,
+        "left_knee": 178,
+        "right_knee": 178
+    }
+}

@@ -12,7 +12,7 @@ export default function RecommendationPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">
-          Tư vấn AI 🤖
+          Tư vấn 
         </h1>
         <p className="text-gray-600 mt-1">
           Nhận lộ trình tập luyện được cá nhân hóa dựa trên thể trạng và mục tiêu của bạn

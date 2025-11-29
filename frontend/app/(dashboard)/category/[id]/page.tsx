@@ -244,17 +244,15 @@ export default function CategoryDetailPage({
             {exercises.map((exercise, index) => (
               <div
                 key={exercise.id}
-                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden"
+                className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all border border-gray-100 overflow-hidden cursor-pointer"
+                onClick={() => {
+                  setSelectedVideo(exercise.videoUrl);
+                  setSelectedExerciseId(exercise.id);
+                }}
               >
                 <div className="flex gap-4">
                   {/* Thumbnail */}
-                  <div
-                    className="relative flex-shrink-0 w-48 h-32 cursor-pointer group"
-                    onClick={() => {
-                      setSelectedVideo(exercise.videoUrl);
-                      setSelectedExerciseId(exercise.id);
-                    }}
-                  >
+                  <div className="relative flex-shrink-0 w-48 h-32 group">
                     <Image
                       src={exercise.thumbnail}
                       alt={exercise.name}
@@ -289,15 +287,24 @@ export default function CategoryDetailPage({
                         <span>🔄 {exercise.reps}</span>
                       </div>
                     </div>
-                    <span
-                      className={`px-3 py-1 text-sm rounded-full ${
-                        difficultyColors[
-                          exercise.difficulty as keyof typeof difficultyColors
-                        ]
-                      }`}
-                    >
-                      {exercise.difficulty}
-                    </span>
+                    <div className="flex items-center gap-3">
+                      <span
+                        className={`px-3 py-1 text-sm rounded-full ${
+                          difficultyColors[
+                            exercise.difficulty as keyof typeof difficultyColors
+                          ]
+                        }`}
+                      >
+                        {exercise.difficulty}
+                      </span>
+                      <Link
+                        href={`/practice/${params.id}/${exercise.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                        className="bg-primary-600 hover:bg-primary-700 text-white px-4 py-2 rounded-lg transition-colors text-sm font-medium"
+                      >
+                        Tập luyện
+                      </Link>
+                    </div>
                   </div>
                 </div>
               </div>

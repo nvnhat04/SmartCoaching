@@ -83,12 +83,25 @@ const comparePose = (userAngles: any, targetAngles: any) => {
 
 interface WebcamCaptureProps {
   active: boolean;
+  checkpoints?: Array<{
+    name: string;
+    angles: Record<string, number>;
+  }>;
 }
 
 // =========================================
 // 2. MAIN COMPONENT
 // =========================================
-export function WebcamCapture({ active }: WebcamCaptureProps) {
+export function WebcamCapture({ active, checkpoints }: WebcamCaptureProps) {
+  // Sử dụng checkpoints từ props nếu có, nếu không dùng mặc định
+  const EXERCISE_CHECKPOINTS = checkpoints && checkpoints.length > 0 
+    ? checkpoints.reduce((acc, cp) => {
+        acc[cp.name] = cp.angles;
+        return acc;
+      }, {} as Record<string, Record<string, number>>)
+    : CHECKPOINTS;
+  
+  const EXERCISE_POSE_NAMES = Object.keys(EXERCISE_CHECKPOINTS);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   
@@ -102,8 +115,8 @@ export function WebcamCapture({ active }: WebcamCaptureProps) {
   // State chỉ dùng để update UI hiển thị
   const [uiState, setUiState] = useState({
     score: 0,
-    poseName: POSE_NAMES[0],
-    progress: `1/${POSE_NAMES.length}`,
+    poseName: EXERCISE_POSE_NAMES[0] || 'dong_tac_1',
+    progress: `1/${EXERCISE_POSE_NAMES.length}`,
     diffs: {} as Record<string, number>,
     isGoodPose: false,
     finished: false
@@ -122,8 +135,8 @@ export function WebcamCapture({ active }: WebcamCaptureProps) {
 
     // 2. Tính toán logic
     const currentIdx = logicState.current.poseIndex;
-    const currentName = POSE_NAMES[currentIdx];
-    const targetAngles = CHECKPOINTS[currentName];
+    const currentName = EXERCISE_POSE_NAMES[currentIdx];
+    const targetAngles = EXERCISE_CHECKPOINTS[currentName];
     
     if (!targetAngles) return; // Đã hết bài
 
@@ -143,9 +156,9 @@ export function WebcamCapture({ active }: WebcamCaptureProps) {
     if (logicState.current.holdCounter > HOLD_THRESHOLD) {
         logicState.current.holdCounter = 0; // Reset counter
         
-        if (currentIdx < POSE_NAMES.length - 1) {
+        if (currentIdx < EXERCISE_POSE_NAMES.length - 1) {
             logicState.current.poseIndex += 1; // Next pose
-            console.log("Moved to next pose:", POSE_NAMES[logicState.current.poseIndex]);
+            console.log("Moved to next pose:", EXERCISE_POSE_NAMES[logicState.current.poseIndex]);
         } else {
             logicState.current.isFinished = true;
         }
@@ -155,8 +168,8 @@ export function WebcamCapture({ active }: WebcamCaptureProps) {
     setUiState({
       score,
       diffs,
-      poseName: POSE_NAMES[logicState.current.poseIndex],
-      progress: `${logicState.current.poseIndex + 1}/${POSE_NAMES.length}`,
+      poseName: EXERCISE_POSE_NAMES[logicState.current.poseIndex] || 'Hoàn thành',
+      progress: `${logicState.current.poseIndex + 1}/${EXERCISE_POSE_NAMES.length}`,
       isGoodPose: isPassThreshold,
       finished: logicState.current.isFinished
     });
@@ -266,10 +279,21 @@ export function WebcamCapture({ active }: WebcamCaptureProps) {
   // =========================================
   // 4. RENDER
   // =========================================
+  if (!active) {
+    return (
+      <div className="relative w-full aspect-video bg-gray-900 rounded-lg overflow-hidden flex items-center justify-center">
+        <div className="text-center text-gray-400">
+          <div className="text-6xl mb-4">📹</div>
+          <p className="text-lg">Nhấn "Bắt đầu" để khởi động camera</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="relative w-[640px] h-[480px] mx-auto bg-black rounded-lg overflow-hidden shadow-xl">
+    <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden shadow-xl">
       <video ref={videoRef} className="hidden" muted playsInline />
-      <canvas ref={canvasRef} width={640} height={480} className="w-full h-full object-cover" />
+      <canvas ref={canvasRef} width={640} height={480} className="w-full h-full object-contain" />
 
       {/* UI Overlay */}
       <div className="absolute top-0 left-0 w-full p-4 bg-gradient-to-b from-black/70 to-transparent text-white">

@@ -13,7 +13,7 @@ export default async function DashboardPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold text-gray-900">
-          Xin chào, {session?.user?.name}! 👋
+          Xin chào, {session?.user?.name}! 
         </h1>
         <p className="text-gray-600 mt-1">
           Đây là tổng quan về tiến trình tập luyện của bạn
