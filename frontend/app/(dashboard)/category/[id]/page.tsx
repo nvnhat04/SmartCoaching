@@ -313,15 +313,7 @@ export default function CategoryDetailPage({
         )}
       </div>
 
-      {/* Start All */}
-      <div className="flex justify-center pt-4">
-        <Link
-          href={`/practice/${params.id}`}
-          className="bg-primary-600 hover:bg-primary-700 text-white font-semibold px-8 py-3 rounded-lg transition-colors"
-        >
-          Bắt đầu tất cả bài tập →
-        </Link>
-      </div>
+     
     </div>
   );
 }

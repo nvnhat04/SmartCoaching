@@ -24,6 +24,10 @@ def get_database():
     """Get the database instance."""
     return db
 
+def get_db():
+    """Get the database instance (alias for compatibility)."""
+    return db
+
 async def connect_db():
     """
     Create database connection.

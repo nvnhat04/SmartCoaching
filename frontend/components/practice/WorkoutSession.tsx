@@ -12,13 +12,27 @@ interface WorkoutSessionProps {
     name: string;
     angles: Record<string, number>;
   }>;
+  exerciseId?: string;
+  categoryId?: string;
   onEnd: () => void;
 }
 
-export function WorkoutSession({ exercise, active, checkpoints, onEnd }: WorkoutSessionProps) {
+export function WorkoutSession({
+  exercise,
+  active,
+  checkpoints,
+  exerciseId,
+  categoryId,
+  onEnd,
+}: WorkoutSessionProps) {
   return (
     <div className="w-full">
-      <WebcamCapture active={active} checkpoints={checkpoints} />
+      <WebcamCapture
+        active={active}
+        checkpoints={checkpoints}
+        exerciseId={exerciseId}
+        categoryId={categoryId}
+      />
     </div>
   );
 }
