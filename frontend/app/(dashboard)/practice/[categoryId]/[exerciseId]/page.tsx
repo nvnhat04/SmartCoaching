@@ -212,11 +212,13 @@ export default function ExercisePracticePage({
               {sessionStarted ? "⏹ Dừng lại" : "▶ Bắt đầu"}
             </button>
           </div>
-          
+
           <WorkoutSession
             exercise={""}
             active={sessionStarted}
             checkpoints={exercise.checkpoints}
+            exerciseId={params.exerciseId}
+            categoryId={params.categoryId}
             onEnd={() => {
               setSessionStarted(false);
               setSelectedExercise(null);
