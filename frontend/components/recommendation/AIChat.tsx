@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useSession } from "next-auth/react";
+import { MarkdownRenderer } from "@/components/ui/MarkdownRenderer";
 
 interface AIChatProps {
   onPlanGenerated?: () => void;
@@ -62,6 +63,7 @@ export function AIChat({ onPlanGenerated }: AIChatProps) {
         throw new Error(data.error || "Failed to get response");
       }
 
+      // Hiển thị toàn bộ response trong chat (bao gồm kế hoạch nếu có)
       const aiMessage: Message = {
         role: "assistant",
         content: data.response,
@@ -69,12 +71,6 @@ export function AIChat({ onPlanGenerated }: AIChatProps) {
       };
 
       setMessages((prev) => [...prev, aiMessage]);
-
-      // Trigger onPlanGenerated nếu AI đề xuất kế hoạch
-      if (data.response.toLowerCase().includes("kế hoạch") || 
-          data.response.toLowerCase().includes("lộ trình")) {
-        onPlanGenerated?.();
-      }
     } catch (error: any) {
       console.error("Chat error:", error);
       const errorMessage: Message = {
@@ -134,7 +130,14 @@ export function AIChat({ onPlanGenerated }: AIChatProps) {
                       : "bg-white text-gray-900 border border-gray-200"
                   }`}
                 >
-                  <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  {msg.role === "assistant" ? (
+                    <MarkdownRenderer 
+                      content={msg.content} 
+                      className={msg.role === "user" ? "text-white" : "text-gray-900"}
+                    />
+                  ) : (
+                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
+                  )}
                   <p className={`text-xs mt-1 ${
                     msg.role === "user" ? "text-primary-100" : "text-gray-400"
                   }`}>
