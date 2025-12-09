@@ -178,9 +178,9 @@ export default function ExercisePracticePage({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* <div className="grid grid-cols-1 lg:grid-cols-1 gap-6"> */}
         {/* Video mẫu - Bên trái */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        {/* <div className="bg-white rounded-lg shadow-md p-6 w-200 h-200">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">
             🎥 Video hướng dẫn
           </h2>
@@ -193,7 +193,7 @@ export default function ExercisePracticePage({
               allowFullScreen
             />
           </div>
-        </div>
+        </div> */}
 
         {/* Camera & Controls - Bên phải */}
         <div className="bg-white rounded-lg shadow-md p-6">
@@ -225,7 +225,7 @@ export default function ExercisePracticePage({
             }}
           />
         </div>
-      </div>
+     
 
       {/* Tips */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">

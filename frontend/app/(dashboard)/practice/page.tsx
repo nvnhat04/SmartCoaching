@@ -31,6 +31,7 @@ export default function PracticePage() {
       ) : (
         <WorkoutSession
           exercise={selectedExercise!}
+          active={sessionStarted}
           onEnd={() => {
             setSessionStarted(false);
             setSelectedExercise(null);
