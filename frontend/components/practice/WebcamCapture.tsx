@@ -1,46 +1,73 @@
-'use client';
+"use client";
 
-import { Camera } from '@mediapipe/camera_utils';
-import { NormalizedLandmark, Pose, POSE_CONNECTIONS, Results } from '@mediapipe/pose';
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { Camera } from "@mediapipe/camera_utils";
+import {
+  NormalizedLandmark,
+  Pose,
+  POSE_CONNECTIONS,
+  Results,
+} from "@mediapipe/pose";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useSaveWorkoutResult } from "@/hooks/useWorkoutResults";
+import { useSession } from "next-auth/react";
 
 // =========================================
 // 1. CONSTANTS & HELPER FUNCTIONS (Ngoài Component)
 // =========================================
 
 const CHECKPOINTS: Record<string, Record<string, number>> = {
-  "dong_tac_1": {
-    left_elbow: 6.35, right_elbow: 5.03,
-    left_shoulder: 160.76, right_shoulder: 178.18,
-    left_hip: 175.96, right_hip: 176.41,
-    left_knee: 179.37, right_knee: 179.32
+  dong_tac_1: {
+    left_elbow: 6.35,
+    right_elbow: 5.03,
+    left_shoulder: 160.76,
+    right_shoulder: 178.18,
+    left_hip: 175.96,
+    right_hip: 176.41,
+    left_knee: 179.37,
+    right_knee: 179.32,
   },
-  "dong_tac_2": {
-    left_elbow: 88.09, right_elbow: 94.93,
-    left_knee: 106.27, right_knee: 111.86,
-    left_hip: 138.46, right_hip: 142.79,
-    left_shoulder: 17.35, right_shoulder: 17.14,
+  dong_tac_2: {
+    left_elbow: 88.09,
+    right_elbow: 94.93,
+    left_knee: 106.27,
+    right_knee: 111.86,
+    left_hip: 138.46,
+    right_hip: 142.79,
+    left_shoulder: 17.35,
+    right_shoulder: 17.14,
   },
-  "dong_tac_3": {
-    left_elbow: 174.68, right_elbow: 169.42,
-    left_knee: 124.61, right_knee: 40.42,
-    left_hip: 139.35, right_hip: 89.31,
-    left_shoulder: 160.33, right_shoulder: 162.25,
-  }
+  dong_tac_3: {
+    left_elbow: 174.68,
+    right_elbow: 169.42,
+    left_knee: 124.61,
+    right_knee: 40.42,
+    left_hip: 139.35,
+    right_hip: 89.31,
+    left_shoulder: 160.33,
+    right_shoulder: 162.25,
+  },
 };
 
 const POSE_NAMES = Object.keys(CHECKPOINTS);
 
 // Map index landmark để vẽ text
 const JOINT_INDEX_MAP: Record<string, number> = {
-  left_elbow: 13, right_elbow: 14,
-  left_shoulder: 11, right_shoulder: 12,
-  left_knee: 25, right_knee: 26,
-  left_hip: 23, right_hip: 24,
+  left_elbow: 13,
+  right_elbow: 14,
+  left_shoulder: 11,
+  right_shoulder: 12,
+  left_knee: 25,
+  right_knee: 26,
+  left_hip: 23,
+  right_hip: 24,
 };
 
 // Tính góc giữa 3 điểm
-const calculateAngle = (a: NormalizedLandmark, b: NormalizedLandmark, c: NormalizedLandmark) => {
+const calculateAngle = (
+  a: NormalizedLandmark,
+  b: NormalizedLandmark,
+  c: NormalizedLandmark
+) => {
   const ab = { x: a.x - b.x, y: a.y - b.y };
   const cb = { x: c.x - b.x, y: c.y - b.y };
   const dot = ab.x * cb.x + ab.y * cb.y;
@@ -87,44 +114,63 @@ interface WebcamCaptureProps {
     name: string;
     angles: Record<string, number>;
   }>;
+  exerciseId?: string;
+  categoryId?: string;
 }
 
 // =========================================
 // 2. MAIN COMPONENT
 // =========================================
-export function WebcamCapture({ active, checkpoints }: WebcamCaptureProps) {
+export function WebcamCapture({
+  active,
+  checkpoints,
+  exerciseId,
+  categoryId,
+}: WebcamCaptureProps) {
+  const { data: session } = useSession();
+  const { mutate: saveWorkout } = useSaveWorkoutResult();
+
   // Sử dụng checkpoints từ props nếu có, nếu không dùng mặc định
-  const EXERCISE_CHECKPOINTS = checkpoints && checkpoints.length > 0 
-    ? checkpoints.reduce((acc, cp) => {
-        acc[cp.name] = cp.angles;
-        return acc;
-      }, {} as Record<string, Record<string, number>>)
-    : CHECKPOINTS;
-  
+  const EXERCISE_CHECKPOINTS =
+    checkpoints && checkpoints.length > 0
+      ? checkpoints.reduce((acc, cp) => {
+          acc[cp.name] = cp.angles;
+          return acc;
+        }, {} as Record<string, Record<string, number>>)
+      : CHECKPOINTS;
+
   const EXERCISE_POSE_NAMES = Object.keys(EXERCISE_CHECKPOINTS);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  
+
   // Dùng ref để lưu logic game loop thay vì State để tránh re-render làm reset camera
   const logicState = useRef({
     poseIndex: 0,
     holdCounter: 0, // Đếm số frame giữ đúng tư thế
-    isFinished: false
+    isFinished: false,
+    startTime: null as Date | null,
+    repResults: [] as Array<{
+      rep_number: number;
+      score: number;
+      feedback: string;
+      timestamp: Date;
+    }>,
+    hasSaved: false,
   });
 
   // State chỉ dùng để update UI hiển thị
   const [uiState, setUiState] = useState({
     score: 0,
-    poseName: EXERCISE_POSE_NAMES[0] || 'dong_tac_1',
+    poseName: EXERCISE_POSE_NAMES[0] || "dong_tac_1",
     progress: `1/${EXERCISE_POSE_NAMES.length}`,
     diffs: {} as Record<string, number>,
     isGoodPose: false,
-    finished: false
+    finished: false,
   });
 
   // Hàm vẽ (được gọi liên tục trong requestAnimationFrame của MediaPipe)
   const drawResults = useCallback((landmarks: NormalizedLandmark[]) => {
-    const ctx = canvasRef.current?.getContext('2d');
+    const ctx = canvasRef.current?.getContext("2d");
     const video = videoRef.current;
     if (!ctx || !video) return;
 
@@ -137,7 +183,7 @@ export function WebcamCapture({ active, checkpoints }: WebcamCaptureProps) {
     const currentIdx = logicState.current.poseIndex;
     const currentName = EXERCISE_POSE_NAMES[currentIdx];
     const targetAngles = EXERCISE_CHECKPOINTS[currentName];
-    
+
     if (!targetAngles) return; // Đã hết bài
 
     const userAngles = extractJointAngles(landmarks);
@@ -154,24 +200,46 @@ export function WebcamCapture({ active, checkpoints }: WebcamCaptureProps) {
     // Nếu giữ đúng tư thế trong 30 frames (khoảng 1 giây)
     const HOLD_THRESHOLD = 30;
     if (logicState.current.holdCounter > HOLD_THRESHOLD) {
-        logicState.current.holdCounter = 0; // Reset counter
-        
-        if (currentIdx < EXERCISE_POSE_NAMES.length - 1) {
-            logicState.current.poseIndex += 1; // Next pose
-            console.log("Moved to next pose:", EXERCISE_POSE_NAMES[logicState.current.poseIndex]);
-        } else {
-            logicState.current.isFinished = true;
-        }
+      logicState.current.holdCounter = 0; // Reset counter
+
+      // Lưu rep result
+      const feedback =
+        score > 90
+          ? "Xuất sắc!"
+          : score > 80
+          ? "Tốt"
+          : score > 70
+          ? "Khá"
+          : "Cần cải thiện";
+      logicState.current.repResults.push({
+        rep_number: currentIdx + 1,
+        score: Math.round(score),
+        feedback,
+        timestamp: new Date(),
+      });
+
+      if (currentIdx < EXERCISE_POSE_NAMES.length - 1) {
+        logicState.current.poseIndex += 1; // Next pose
+        console.log(
+          "Moved to next pose:",
+          EXERCISE_POSE_NAMES[logicState.current.poseIndex]
+        );
+      } else {
+        logicState.current.isFinished = true;
+      }
     }
 
     // 4. Update UI State (Throttle nếu cần, ở đây update mỗi frame nhưng React 18 sẽ batching)
     setUiState({
       score,
       diffs,
-      poseName: EXERCISE_POSE_NAMES[logicState.current.poseIndex] || 'Hoàn thành',
-      progress: `${logicState.current.poseIndex + 1}/${EXERCISE_POSE_NAMES.length}`,
+      poseName:
+        EXERCISE_POSE_NAMES[logicState.current.poseIndex] || "Hoàn thành",
+      progress: `${logicState.current.poseIndex + 1}/${
+        EXERCISE_POSE_NAMES.length
+      }`,
       isGoodPose: isPassThreshold,
-      finished: logicState.current.isFinished
+      finished: logicState.current.isFinished,
     });
 
     // 5. Vẽ Skeleton & Debug info
@@ -184,15 +252,15 @@ export function WebcamCapture({ active, checkpoints }: WebcamCaptureProps) {
         ctx.beginPath();
         ctx.moveTo(p1.x * ctx.canvas.width, p1.y * ctx.canvas.height);
         ctx.lineTo(p2.x * ctx.canvas.width, p2.y * ctx.canvas.height);
-        ctx.strokeStyle = isPassThreshold ? '#00FF00' : '#FFFFFF'; // Xanh nếu đúng
+        ctx.strokeStyle = isPassThreshold ? "#00FF00" : "#FFFFFF"; // Xanh nếu đúng
         ctx.stroke();
       }
     });
 
     // Vẽ khớp và góc
-    ctx.font = 'bold 14px Arial';
-    ctx.textBaseline = 'bottom';
-    
+    ctx.font = "bold 14px Arial";
+    ctx.textBaseline = "bottom";
+
     for (const [joint, targetVal] of Object.entries(targetAngles)) {
       const lmIdx = JOINT_INDEX_MAP[joint];
       const lm = landmarks[lmIdx];
@@ -201,41 +269,123 @@ export function WebcamCapture({ active, checkpoints }: WebcamCaptureProps) {
         const y = lm.y * ctx.canvas.height;
         const userVal = (userAngles as any)[joint];
         const diff = Math.abs(userVal - targetVal);
-        
+
         // Vẽ điểm khớp
         ctx.beginPath();
         ctx.arc(x, y, 5, 0, 2 * Math.PI);
-        ctx.fillStyle = diff < 15 ? '#00FF00' : '#FF0000';
+        ctx.fillStyle = diff < 15 ? "#00FF00" : "#FF0000";
         ctx.fill();
 
         // Vẽ số đo góc
-        ctx.fillStyle = 'white';
-        ctx.strokeStyle = 'black';
+        ctx.fillStyle = "white";
+        ctx.strokeStyle = "black";
         ctx.lineWidth = 3;
         const text = `${Math.round(userVal)}°`;
         ctx.strokeText(text, x + 10, y);
         ctx.fillText(text, x + 10, y);
       }
     }
-    
+
     // Vẽ thanh Progress Hold
-    if(logicState.current.holdCounter > 0) {
-        const progress = logicState.current.holdCounter / HOLD_THRESHOLD;
-        ctx.fillStyle = 'rgba(0, 255, 0, 0.5)';
-        ctx.fillRect(0, ctx.canvas.height - 10, ctx.canvas.width * progress, 10);
+    if (logicState.current.holdCounter > 0) {
+      const progress = logicState.current.holdCounter / HOLD_THRESHOLD;
+      ctx.fillStyle = "rgba(0, 255, 0, 0.5)";
+      ctx.fillRect(0, ctx.canvas.height - 10, ctx.canvas.width * progress, 10);
     }
 
     ctx.restore();
   }, []); // Không dependency để tránh tạo lại hàm
 
   // =========================================
-  // 3. MEDIAPIPE SETUP
+  // 3. AUTO-SAVE WHEN FINISHED OR STOPPED
+  // =========================================
+  const saveWorkoutResults = useCallback(() => {
+    // Kiểm tra đã lưu hoặc thiếu thông tin bắt buộc
+    if (
+      logicState.current.hasSaved ||
+      !logicState.current.startTime ||
+      !session?.user?.id ||
+      !exerciseId ||
+      !categoryId
+    ) {
+      return;
+    }
+
+    const endTime = new Date();
+    const startTime = logicState.current.startTime;
+
+    // Convert rep results to match API format (timestamps to ISO strings)
+    const formattedRepResults = logicState.current.repResults.map((rep) => ({
+      ...rep,
+      timestamp: rep.timestamp.toISOString(),
+    }));
+
+    console.log("💾 Saving workout results...", {
+      total_reps: logicState.current.repResults.length,
+      exercise_id: exerciseId,
+      category_id: categoryId,
+      duration:
+        Math.round((endTime.getTime() - startTime.getTime()) / 1000) + "s",
+    });
+
+    saveWorkout(
+      {
+        user_id: session.user.id,
+        exercise_id: parseInt(exerciseId),
+        category_id: parseInt(categoryId),
+        started_at: startTime.toISOString(),
+        ended_at: endTime.toISOString(),
+        total_reps: logicState.current.repResults.length,
+        rep_results: formattedRepResults,
+      },
+      {
+        onSuccess: (data) => {
+          console.log("✅ Workout result saved successfully!", data);
+          logicState.current.hasSaved = true;
+        },
+        onError: (error) => {
+          console.error("❌ Failed to save workout result:", error);
+        },
+      }
+    );
+  }, [session, exerciseId, categoryId, saveWorkout]);
+
+  // Auto-save when all checkpoints finished
+  useEffect(() => {
+    if (logicState.current.isFinished && !logicState.current.hasSaved) {
+      saveWorkoutResults();
+    }
+  }, [uiState.finished, saveWorkoutResults]);
+
+  // Save when user stops workout (active becomes false)
+  useEffect(() => {
+    return () => {
+      // Cleanup: save results when component unmounts or active becomes false
+      // Lưu ngay cả khi không có rep nào hoàn thành, miễn là đã bắt đầu (có startTime)
+      if (
+        !active &&
+        logicState.current.startTime &&
+        !logicState.current.hasSaved
+      ) {
+        saveWorkoutResults();
+      }
+    };
+  }, [active, saveWorkoutResults]);
+
+  // =========================================
+  // 4. MEDIAPIPE SETUP
   // =========================================
   useEffect(() => {
     if (!active) return;
 
+    // Set start time when camera becomes active
+    if (!logicState.current.startTime) {
+      logicState.current.startTime = new Date();
+    }
+
     const pose = new Pose({
-      locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
+      locateFile: (file) =>
+        `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`,
     });
 
     pose.setOptions({
@@ -272,12 +422,26 @@ export function WebcamCapture({ active, checkpoints }: WebcamCaptureProps) {
       camera?.stop();
       pose.close();
     };
-    // Quan trọng: Dependencies rỗng hoặc chỉ chứa 'active'. 
+    // Quan trọng: Dependencies rỗng hoặc chỉ chứa 'active'.
     // KHÔNG đưa poseIndex vào đây để tránh reset camera.
   }, [active, drawResults]);
 
+  // Reset state when active changes
+  useEffect(() => {
+    if (active) {
+      logicState.current = {
+        poseIndex: 0,
+        holdCounter: 0,
+        isFinished: false,
+        startTime: new Date(),
+        repResults: [],
+        hasSaved: false,
+      };
+    }
+  }, [active]);
+
   // =========================================
-  // 4. RENDER
+  // 5. RENDER
   // =========================================
   if (!active) {
     return (
@@ -293,40 +457,51 @@ export function WebcamCapture({ active, checkpoints }: WebcamCaptureProps) {
   return (
     <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden shadow-xl">
       <video ref={videoRef} className="hidden" muted playsInline />
-      <canvas ref={canvasRef} width={640} height={480} className="w-full h-full object-contain" />
+      <canvas
+        ref={canvasRef}
+        width={640}
+        height={480}
+        className="w-full h-full object-contain"
+      />
 
       {/* UI Overlay */}
       <div className="absolute top-0 left-0 w-full p-4 bg-gradient-to-b from-black/70 to-transparent text-white">
         <div className="flex justify-between items-start">
           <div>
-             <h3 className="text-xl font-bold text-yellow-400 uppercase">{uiState.poseName}</h3>
-             <p className="text-sm text-gray-300">Bài tập: {uiState.progress}</p>
+            <h3 className="text-xl font-bold text-yellow-400 uppercase">
+              {uiState.poseName}
+            </h3>
+            <p className="text-sm text-gray-300">Bài tập: {uiState.progress}</p>
           </div>
-          
+
           <div className="text-right">
             <div className="text-2xl font-bold">
-                {uiState.score.toFixed(0)} <span className="text-sm font-normal text-gray-400">/ 100</span>
+              {uiState.score.toFixed(0)}{" "}
+              <span className="text-sm font-normal text-gray-400">/ 100</span>
             </div>
             {uiState.finished ? (
-                <span className="text-green-400 font-bold animate-pulse">HOÀN THÀNH! 🎉</span>
+              <span className="text-green-400 font-bold animate-pulse">
+                HOÀN THÀNH! 🎉
+              </span>
             ) : uiState.isGoodPose ? (
-                <span className="text-green-400 font-bold">GIỮ NGUYÊN...</span>
+              <span className="text-green-400 font-bold">GIỮ NGUYÊN...</span>
             ) : (
-                <span className="text-red-400">Điều chỉnh tư thế</span>
+              <span className="text-red-400">Điều chỉnh tư thế</span>
             )}
           </div>
         </div>
 
         {/* Debug Diffs nhỏ gọn hơn */}
         <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-xs opacity-80">
-            {Object.entries(uiState.diffs).map(([k, v]) => (
-                v > 15 && ( // Chỉ hiện các lỗi sai lớn để đỡ rối
-                    <div key={k} className="text-red-300 flex justify-between">
-                        <span>{k}</span>
-                        <span>lệch {Math.round(v)}°</span>
-                    </div>
-                )
-            ))}
+          {Object.entries(uiState.diffs).map(
+            ([k, v]) =>
+              v > 15 && ( // Chỉ hiện các lỗi sai lớn để đỡ rối
+                <div key={k} className="text-red-300 flex justify-between">
+                  <span>{k}</span>
+                  <span>lệch {Math.round(v)}°</span>
+                </div>
+              )
+          )}
         </div>
       </div>
     </div>
