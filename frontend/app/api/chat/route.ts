@@ -3,17 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
-
-// Gemini API configuration
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
-// Sử dụng gemini-2.5-flash - stable, nhanh, phù hợp cho chat
-const GEMINI_MODEL = "gemini-2.5-flash";
-const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
-
-interface ChatMessage {
-  role: "user" | "model";
-  parts: { text: string }[];
-}
+import { callAIProvider, getDefaultProvider, type ChatMessage } from "@/lib/ai-providers";
 
 // System prompt cho AI fitness coach
 const SYSTEM_PROMPT = `Bạn là một AI Fitness Coach chuyên nghiệp, thân thiện và nói chuyện tự nhiên như huấn luyện viên cá nhân.  
@@ -40,13 +30,6 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
-      );
-    }
-
-    if (!GEMINI_API_KEY) {
-      return NextResponse.json(
-        { error: "Gemini API key not configured" },
-        { status: 500 }
       );
     }
 
@@ -93,65 +76,104 @@ Thông tin người dùng:
 - Giới tính: ${userGender}
 `;
 
+    // Xác định AI provider từ environment
+    const provider = getDefaultProvider();
+    const providerApiKey = provider === "groq" ? process.env.GROQ_API_KEY : process.env.GEMINI_API_KEY;
+
+    if (!providerApiKey) {
+      return NextResponse.json(
+        {
+          error: `${provider.toUpperCase()} API key not configured. Please set ${provider.toUpperCase()}_API_KEY in .env.local`,
+          errorType: "missing_api_key",
+          success: false,
+        },
+        { status: 500 }
+      );
+    }
+
     // Xây dựng conversation history
-    // Format cho Gemini API
-    const contents: any[] = [];
+    const messages: ChatMessage[] = [];
 
-    // Thêm system prompt và user context vào tin nhắn đầu tiên
-    contents.push({
-      role: "user",
-      parts: [{ text: SYSTEM_PROMPT + "\n\n" + userContext }],
+    // Thêm system prompt và user context
+    messages.push({
+      role: "system",
+      content: SYSTEM_PROMPT + "\n\n" + userContext,
     });
 
-    // Thêm response từ model (giả lập)
-    contents.push({
-      role: "model",
-      parts: [{ text: "Xin chào! Tôi là AI Fitness Coach của bạn. Tôi đã nắm được thông tin của bạn. Bạn muốn hỏi gì về sức khỏe và luyện tập?" }],
-    });
+    // Thêm response từ model (giả lập) - chỉ cho lần đầu
+    if (conversationHistory.length === 0) {
+      messages.push({
+        role: "assistant",
+        content: "Xin chào! Tôi là AI Fitness Coach của bạn. Tôi đã nắm được thông tin của bạn. Bạn muốn hỏi gì về sức khỏe và luyện tập?",
+      });
+    }
 
     // Thêm lịch sử chat (giới hạn 10 tin nhắn gần nhất)
     const recentHistory = conversationHistory.slice(-10);
     for (const msg of recentHistory) {
-      contents.push({
-        role: msg.role === "user" ? "user" : "model",
-        parts: [{ text: msg.content }],
+      messages.push({
+        role: msg.role === "user" ? "user" : "assistant",
+        content: msg.content,
       });
     }
 
     // Thêm tin nhắn hiện tại
-    contents.push({
+    messages.push({
       role: "user",
-      parts: [{ text: message }],
+      content: message,
     });
 
-    // Gọi Gemini API
-    const response = await fetch(
-      `${GEMINI_API_URL}?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: contents,
-          generationConfig: {
-            temperature: 0.7,
-            topK: 40,
-            topP: 0.95,
-            maxOutputTokens: 1024,
-          },
-        }),
-      }
+    // Gọi AI provider
+    const defaultModel = process.env.AI_MODEL || (
+      provider === "gemini"
+        ? "gemini-1.5-flash"
+        : "llama-3.1-70b-versatile"
     );
+    
+    console.log(`Calling ${provider} API with model: ${defaultModel}`);
+    
+    const aiResult = await callAIProvider(messages, {
+      provider,
+      apiKey: providerApiKey,
+      model: defaultModel,
+    });
+    
+    console.log(`AI Provider Response:`, {
+      hasContent: !!aiResult.content,
+      contentLength: aiResult.content?.length || 0,
+      hasError: !!aiResult.error,
+      error: aiResult.error,
+    });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error("Gemini API Error:", errorData);
-      throw new Error(errorData.error?.message || "Failed to get response from Gemini API");
+    if (aiResult.error) {
+      // Kiểm tra lỗi quota/rate limit
+      if (
+        aiResult.error.includes("quota") || 
+        aiResult.error.includes("exceeded") ||
+        aiResult.error.includes("rate limit")
+      ) {
+        return NextResponse.json(
+          {
+            error: provider === "gemini"
+              ? "Đã vượt quá giới hạn sử dụng Gemini API. Vui lòng kiểm tra quota hoặc chuyển sang Groq."
+              : "Đã vượt quá giới hạn sử dụng Groq API. Vui lòng đợi reset quota hoặc chuyển sang Gemini.",
+            errorType: "quota_exceeded",
+            success: false,
+          },
+          { status: 429 }
+        );
+      }
+
+      return NextResponse.json(
+        {
+          error: aiResult.error || "Đã xảy ra lỗi khi gọi AI provider",
+          success: false,
+        },
+        { status: 500 }
+      );
     }
 
-    const data = await response.json();
-    const aiResponse = data.candidates?.[0]?.content?.parts?.[0]?.text || 
+    const aiResponse = aiResult.content || 
       "Xin lỗi, tôi không thể trả lời câu hỏi này. Vui lòng thử lại.";
 
     return NextResponse.json({
@@ -160,6 +182,20 @@ Thông tin người dùng:
     });
   } catch (error: any) {
     console.error("Chat API Error:", error);
+    
+    // Kiểm tra lại lỗi quota trong catch block
+    const errorMessage = error.message || "";
+    if (errorMessage.includes("quota") || errorMessage.includes("exceeded")) {
+      return NextResponse.json(
+        {
+          error: "Đã vượt quá giới hạn sử dụng AI provider. Vui lòng thử lại sau hoặc chuyển sang provider khác.",
+          errorType: "quota_exceeded",
+          success: false,
+        },
+        { status: 429 }
+      );
+    }
+    
     return NextResponse.json(
       {
         error: error.message || "Đã xảy ra lỗi khi xử lý tin nhắn",

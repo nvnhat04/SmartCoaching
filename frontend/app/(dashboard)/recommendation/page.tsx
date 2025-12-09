@@ -1,13 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import { AIChat } from "@/components/recommendation/AIChat";
-import { RecommendedPlan } from "@/components/recommendation/RecommendedPlan";
 import { ExerciseRecommendations } from "@/components/recommendation/ExerciseRecommendations";
 
 export default function RecommendationPage() {
-  const [showPlan, setShowPlan] = useState(false);
-
   return (
     <div className="space-y-6">
       <div>
@@ -21,10 +17,9 @@ export default function RecommendationPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2">
-          <AIChat onPlanGenerated={() => setShowPlan(true)} />
+          <AIChat />
         </div>
         <div className="space-y-6">
-          {showPlan && <RecommendedPlan />}
           <ExerciseRecommendations />
         </div>
       </div>
